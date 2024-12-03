@@ -1,0 +1,159 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WorkHoursTracker</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <h1>DeliveryServiceTracker</h1>
+
+    <form id="deliveryForm">
+        <input type="hidden" id="deliveryId" name="id">
+        <label for="deliveryIdInput">ID:</label>
+        <input type="number" id="deliveryIdInput" name="delivery_id" required>
+        <label for="servicestInput">Service status:</label>
+        <input type="text" id="servicestInput" name="service_status" required>
+        <label for="deliverystInput">Delivery status:</label>
+        <input type="text" id="deliverystInput" name="delivery_status" required>
+        <label for="sendingfrInfoInput">Sending from:</label>
+        <input type="text" id="sendingfrInfoInput" name="sending_from" required>
+        <label for="sendingwhIdInput">Sending where:</label>
+        <input type="text" id="sendingwhIdInput" name="sending_where" required>
+        <button type="submit">Save</button>
+    </form>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Service status</th>
+                <th>Delivery status</th>
+                <th>Sending from</th>
+                <th>Sending where</th>
+                <th>Goods ID</th>
+            </tr>
+        </thead>
+        <tbody id="deliveryTableBody"></tbody>
+    </table>
+
+    <script>
+        const baseUrl = 'https://localhost:1967/api/delivery';
+
+        async function loadDelivery() {
+            try {
+                const response = await fetch(baseUrl);
+                const delivery = await response.json();
+                const tableBody = document.getElementById('deliveryTableBody');
+                tableBody.innerHTML = '';
+
+                delivery.forEach(delivery => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                                <td>${delivery.id}</td>
+                                <td>${delivery.deliveryId}</td>
+                                <td>${delivery.serviceStatus}</td>
+                                <td>${delivery.deliveryStatus}</td>
+                                <td>${delivery.sendingFrom}</td>
+                                <td>${delivery.sendingWhere}</td>
+                                <td class="actions">
+                                    <a href="#" data-id="${delivery.id}" class="edit-link">Edit</a>
+                                    <a href="#" data-id="${delivery.id}" class="delete-link">Delete</a>
+                                </td>
+                            `;
+                    tableBody.appendChild(row);
+                });
+
+                document.querySelectorAll('.edit-link').forEach(link => {
+                    link.addEventListener('click', async (e) => {
+                        e.preventDefault();
+                        const deliveryId = e.target.getAttribute('data-id');
+                        editEmployee(deliveryId);
+                    });
+                });
+
+                document.querySelectorAll('.delete-link').forEach(link => {
+                    link.addEventListener('click', async (e) => {
+                        e.preventDefault();
+                        const deliveryId = e.target.getAttribute('data-id');
+                        if (confirm('Are you sure you want to delete this delivery?')) {
+                            await deleteDelivery(deliveryId);
+                            loadDelivery();
+                        }
+                    });
+                });
+            } catch (error) {
+                console.error('Error loading dliveries:', error);
+            }
+        }
+
+        async function editDelivery(id) {
+            try {
+                const response = await fetch(`${baseUrl}/${id}`);
+                const employee = await response.json();
+
+                document.getElementById('deliveryId').value = delivery.id;
+                document.getElementById('deliveryIdInput').value = delivery.deliveryId;
+                document.getElementById('servicestInput').value = delivery.serviceStatus;
+                document.getElementById('deliverystInput').value = delivery.deliveryStatus;
+                document.getElementById('sendingfrInfoInput').value = delivery.sendingFrom;
+                document.getElementById('sendingwhIdInput').value = delivery.sendingWhere;
+            } catch (error) {
+                console.error('Error editing delivery:', error);
+            }
+        }
+
+        async function deleteDelivery(id) {
+            try {
+                const response = await fetch(`${baseUrl}/${id}`, {
+                    method: 'DELETE'
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to delete delivery');
+                }
+            } catch (error) {
+                console.error('Error deleting delivery:', error);
+            }
+        }
+
+        document.getElementById('deliveryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const payload = {
+                id: document.getElementById('deliveryId').value || null, // Заменяем null на 0
+                deliveryId: document.getElementById('deliveryIdInput').value,
+                serviceStatus: document.getElementById('servicestInput').value,
+                deliveryStatus: parseInt(document.getElementById('deliverystInput').value, 10),
+                sendingFrom: document.getElementById('sendingfrInfoInput').value,
+                sendingWhere: parseInt(document.getElementById('sendingwhIdInput').value, 10)
+            };
+
+            console.log('Sending payload:', JSON.stringify(payload)); // Для отладки
+
+            try {
+                const response = await fetch(baseUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Server error:', errorText);
+                    throw new Error('Failed to save delivery');
+                }
+
+                document.getElementById('deliveryForm').reset();
+                loadDelivery();
+            } catch (error) {
+                console.error('Error saving delivery:', error);
+            }
+        });
+
+
+
+        loadDelivery();
+    </script>
+</body>
+</html>
